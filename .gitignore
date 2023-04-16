@@ -1,4 +1,5 @@
 lua/liblua.h
 *.o
 *.so
-.DS+Store
+.DS_Store
+*.a
