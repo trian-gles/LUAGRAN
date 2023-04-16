@@ -1,0 +1,4 @@
+lua/liblua.h
+*.o
+*.so
+.DS+Store
