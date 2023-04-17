@@ -1,5 +1,11 @@
 #include <Ougens.h>
 #include <vector>
+
+extern "C"{
+#include "lua/lauxlib.h"
+#include "lua/lua.h"
+#include "lua/lualib.h"
+}
 		  // the base class for this instrument
 typedef struct {
 	float waveSampInc; 
@@ -29,32 +35,11 @@ public:
 private:
 	bool configured;
 	int branch;
-
-	double x1;
-	double x2;
-
-	double lastA;
-
-	double lastB;
-
-	double minRate;
-	double maxRate;
-	double minDur;
-	double maxDur;
-	double minFreq;
-	double maxFreq;
-	double minAmp;
-	double maxAmp;
-	double minPan;
-	double maxPan;
-
-	double lastAmp;
-	double lastRate;
-	double lastDur;
-	double lastFreq;
-	double lastPan;
-
 	float amp;
+
+	int nPFields;
+	float* pFieldVals;
+	lua_State *L;
 
 	std::vector<Grain*>* grains;
 	int grainLimit;

@@ -1,5 +1,5 @@
-lua/liblua.h
 *.o
 *.so
 .DS_Store
 *.a
+.vscode

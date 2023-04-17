@@ -20,7 +20,7 @@ extern "C"{
 
 #define MAXGRAINS 1500
 
-LUAGRAN::LUAGRAN() : branch(0)
+LUAGRAN::LUAGRAN() : branch(0), L(nullptr) 
 {
 }
 
@@ -35,6 +35,8 @@ LUAGRAN::~LUAGRAN()
 		delete (*grains)[i];
 	}
 	delete grains;
+	lua_close(L);
+	delete pFieldVals;
 }
 
 
@@ -45,28 +47,11 @@ int LUAGRAN::init(double p[], int n_args)
 		p0: outskip
 		p1: dur
 		p2: amp*
-		p3: rateExpr
-		p4: rateMin
-		p5: rateMax
-		p6: durExpr
-		p7: durMin
-		p8: durMax
-		p9: freqExpr
-		p10: freqMin
-		p11: freqMax
-		p12: ampExpr
-		p13: ampMin
-		p14: ampMax
-		p15: panExpr
-		p16: panMin
-		p17: panMax
-		p18: wavetable**
-		p19: grainEnv**
-		p20: x1* (optional)
-		p21: x2* (optional)
-		p22: funcA (optional)
-		p23: funcB (optional)
-		p24: grainLimit=1500 (optional)
+		p3: wavetable**
+		p4: grainEnv**
+		p5: grainLimit (recommended:1500)
+		p6: script_name
+		p7-: optional user values*
 
 		* may recieve pfield values
 		** must be passed pfield maketables.
@@ -77,10 +62,9 @@ int LUAGRAN::init(double p[], int n_args)
 	if (outputChannels() > 2)
 	      return die("LUAGRAN", "Output must be mono or stereo.");
 
-	if (n_args < 20)
-		return die("LUAGRAN", "20 arguments are required");
-	else if (n_args > 26)
-		return die("LUAGRAN", "too many arguments");
+	if (n_args < 7)
+		return die("LUAGRAN", "7 arguments are required");
+
 	grainEnvLen = 0;
 	wavetableLen = 0;
 	amp = p[2];
@@ -88,46 +72,38 @@ int LUAGRAN::init(double p[], int n_args)
 	newGrainCounter = 0;
 
 	// init tables
-	wavetable = (double *) getPFieldTable(18, &wavetableLen);
-	grainEnv = (double *) getPFieldTable(19, &grainEnvLen);
-	
+	wavetable = (double *) getPFieldTable(3, &wavetableLen);
+	grainEnv = (double *) getPFieldTable(4, &grainEnvLen);
+	grainLimit = p[5];
 
-	/* funcRate = getfunc(3);
-	minRate = p[4];
-	maxRate = p[5];
-
-	funcDur = getfunc(6);
-	minDur = p[7];
-	maxDur = p[8];
-
-	funcFreq = getfunc(9);
-	minFreq = p[10];
-	maxFreq = p[11];
-
-	funcAmp = getfunc(12);
-	minAmp = p[13];
-	maxAmp = p[14];
-
-	funcPan = getfunc(15);
-	minPan = p[16];
-	maxPan = p[17]; */
-
-	x1 = 0;
-	x2 = 0;
-
-
-	if (n_args > 24)
+	if (grainLimit > MAXGRAINS)
 	{
-		grainLimit = p[24];
-		if (grainLimit > MAXGRAINS)
-		{
-			rtcmix_advise("STGRAN2", "user provided max grains exceeds limit, lowering to 1500");
-			grainLimit = MAXGRAINS;
-		}
-			
+		rtcmix_advise("STGRAN2", "user provided max grains exceeds limit, lowering to 1500");
+		grainLimit = MAXGRAINS;
 	}
 	else
 		grainLimit = MAXGRAINS;
+
+	L = luaL_newstate();
+	luaL_openlibs(L);
+	
+
+	const PField &field = getPField(6);
+   	const char *str = field.stringValue(0);
+   	if (str == NULL)
+		return die("LUAGRAN", "Invalid file name");
+
+	luaL_dofile(L, str);
+	lua_setglobal(L, "granmodule");
+    lua_settop(L, 0);
+	
+	lua_getglobal(L, "granmodule");
+	lua_getfield(L, -1, "init");
+    lua_call(L, 0, 0);
+
+	nPFields = n_args - 7;
+
+	
 
 	//std::cout << "setup finished" << "\n";
 	return nSamps();
@@ -146,6 +122,8 @@ int LUAGRAN::configure()
 		grains->push_back(new Grain());
 	}
 
+	pFieldVals = new float[nPFields];
+
 	configured = true;
 
 	return 0;	// IMPORTANT: Return 0 on success, and -1 on failure.
@@ -157,54 +135,43 @@ int LUAGRAN::configure()
 void LUAGRAN::resetgrain(Grain* grain)
 {
 	//std::cout << "making grain" << "\n";
+	lua_getglobal(L, "granmodule");
+	lua_getfield(L, -1, "generate");
+    lua_call(L, nPFields, 5);
 
-	/* double u1 = ((double) rand() / (RAND_MAX));
-	double u2 = ((double) rand() / (RAND_MAX));
-	double u3 = ((double) rand() / (RAND_MAX));
-	double u4 = ((double) rand() / (RAND_MAX));
-	//double a = callabfunc(funcA, lastA, u1, u2, u3, u4, lastA, lastB);
-	lastA = a;
-	//double b = callabfunc(funcB, lastB, u1, u2, u3, u4, lastA, lastB);
-	lastB = b;
+	double rate = lua_tonumber(L, -5);
+    double dur = lua_tonumber(L, -4);
+	double freq = lua_tonumber(L, -3);
+	double amp = lua_tonumber(L, -2);
+	double pan = lua_tonumber(L, -1);
+	lua_pop(L, 5);
 
-	//std::cout << "a, b = " << a << " " << b << "\n";
-
-	float freq = callfunc(funcFreq, minFreq, maxFreq, lastFreq, u1, u2, u3, u4, a, b);
-	lastFreq = freq;
-	//std::cout << "setting dur" << "\n";
-	float grainDurSamps =  callfunc(funcDur, minDur, maxDur, lastDur, u1, u2, u3, u4, a, b) * SR;
-	lastDur = grainDurSamps / SR;
-	//std::cout << "setting pan" << "\n";
-	float panR = (float) callfunc(funcPan, minPan, maxPan, lastPan, u1, u2, u3, u4, a, b);
-	lastPan = panR;
-	//std::cout << "setting counter" << "\n";
-	newGrainCounter = (int)round(SR * callfunc(funcRate, minRate, maxRate, lastRate, u1, u2, u3, u4, a, b));
-	lastRate = newGrainCounter / SR;
-	//std::cout << "setting freq" << "\n";
-	
+	//printf("generated grain with rate %f dur %f freq %f amp %f pan %f\n", rate, dur, freq, amp, pan);
+	float grainDurSamps = SR * dur;
 	grain->waveSampInc = wavetableLen * freq / SR;
 	grain->ampSampInc = ((float)grainEnvLen) / grainDurSamps;
 	grain->currTime = 0;
 	grain->isplaying = true;
 	grain->wavePhase = 0;
 	grain->ampPhase = 0;
-	//grain->amp = (float)callfunc(funcAmp, minAmp, maxAmp, lastAmp, u1, u2, u3, u4, a, b);
-	grain->panR = panR;
-	grain->panL = 1 - panR; // separating these in RAM means fewer sample rate calculations
-	(*grain).dur = (int)round(grainDurSamps);
+	grain->amp = amp;
+	grain->panR = pan;
+	grain->panL = 1 - pan; // separating these in RAM means fewer sample rate calculations
+	grain->dur = (int)round(grainDurSamps);
 	//std::cout<<"sending grain with freq : " << freq << " dur : " << grain->dur << " panR " << panR << "\n"; */
-
+	newGrainCounter = (int)round(SR * rate);
 }
 
 
 // update pfields
 void LUAGRAN::doupdate()
 {
-	double p[22];
-	update(p, 22, 1 << 2 | 1 << 20 | 1 << 21);
-	amp =(float) p[2];
-	x1 =(float) p[20];
-	x2 = (float) p[21];
+	double p[20];
+	update(p, 20);
+	amp = (float) p[2];
+	for (int i = 0; i < nPFields; i++){
+		
+	}
 
 }
 
