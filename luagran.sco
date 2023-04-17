@@ -23,6 +23,6 @@ wave = maketable("wave", 1000, "sine")
 env = maketable("window", 1000, "hanning")
 
 grainlimit = 1500
-script_name = "ex1.lua"
+script_name = "markov.lua"
 
 LUAGRAN(outskip, dur, amp * 10000, wave, env, grainlimit, script_name)
