@@ -1,4 +1,4 @@
--- script.lua
+-- basic template for usage
 
 local granmodule = {}
 granmodule.state = {}
@@ -10,7 +10,7 @@ end
 
 function granmodule.generate(...) -- receives external state control as args
     
-    -- create parameters for a grain and modify state
+    -- create parameters for a grain and modify state if needed
     rate = .01
     dur = 0.01
     freq = 440

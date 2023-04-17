@@ -1,22 +1,28 @@
--- script.lua
+-- basic stochastic example
 
 local granmodule = {}
 granmodule.state = {}
 
 function granmodule.init()
-    print("Running init method")
-    -- setup initial values for the state at the start
 end
 
-function granmodule.generate(...) -- receives external state control as args
-    
-    -- create parameters for a grain and modify state
-    rate = .01
-    dur = 0.01
-    freq = 440
-    amp = 1
-    pan = 0.5
+function granmodule.generate(...)
+    rate = randrange(0.00001, 0.005)
+    dur = randrange(0.0001, 0.05)
+    freq = octfreq(randrange(7, 14))
+    amp = randrange(0.01, 1)
+    pan = math.random()
 
     return rate, dur, freq, amp, pan
 end
+
+function randrange(m, n)
+    return math.random() * (n - m) + m
+end
+
+function octfreq(linocts)
+    return 2^linocts
+end
+
 return granmodule
+
