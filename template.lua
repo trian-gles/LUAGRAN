@@ -2,6 +2,7 @@
 
 local granmodule = {}
 granmodule.state = {}
+local matrix = require "lib/matrix"
 
 function granmodule.init()
     print("Running init method")
