@@ -83,7 +83,6 @@ int LUAGRAN::init(double p[], int n_args)
 	}
 	else
 		grainLimit = MAXGRAINS;
-
 	L = luaL_newstate();
 	luaL_openlibs(L);
 	
@@ -98,9 +97,9 @@ int LUAGRAN::init(double p[], int n_args)
     lua_settop(L, 0);
 	
 	lua_getglobal(L, "granmodule");
+	
 	lua_getfield(L, -1, "init");
     lua_call(L, 0, 0);
-
 	nPFields = n_args - 7;
 
 	
@@ -137,7 +136,7 @@ void LUAGRAN::resetgrain(Grain* grain)
 	//std::cout << "making grain" << "\n";
 	lua_getglobal(L, "granmodule");
 	lua_getfield(L, -1, "generate");
-    lua_call(L, nPFields, 5);
+    lua_call(L, 0, 5);
 
 	double rate = lua_tonumber(L, -5);
     double dur = lua_tonumber(L, -4);
@@ -166,12 +165,19 @@ void LUAGRAN::resetgrain(Grain* grain)
 // update pfields
 void LUAGRAN::doupdate()
 {
+	lua_getglobal(L, "granmodule");
+	lua_getfield(L, -1, "update");
 	double p[20];
 	update(p, 20);
 	amp = (float) p[2];
 	for (int i = 0; i < nPFields; i++){
-		
+		float field = (float) p[i + 7];
+		lua_pushnumber(L, field);
 	}
+
+	
+	
+    lua_call(L, nPFields, 0);
 
 }
 

@@ -7,7 +7,7 @@ function granmodule.init()
     granmodule.state.lastlinoct = 8
 end
 
-function granmodule.generate(...)
+function granmodule.generate()
     rate = randrange(0.0001, 0.0005)
     dur = randrange(0.0001, 0.05)
 
@@ -21,6 +21,10 @@ function granmodule.generate(...)
     pan = math.random()
 
     return rate, dur, freq, amp, pan
+end
+
+function granmodule.update(...)
+    -- receives updates from pFields as args
 end
 
 function randrange(m, n)

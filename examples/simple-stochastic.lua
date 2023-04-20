@@ -6,7 +6,7 @@ granmodule.state = {}
 function granmodule.init()
 end
 
-function granmodule.generate(...)
+function granmodule.generate()
     rate = randrange(0.00001, 0.005)
     dur = randrange(0.0001, 0.05)
     freq = octfreq(randrange(7, 14))
@@ -14,6 +14,10 @@ function granmodule.generate(...)
     pan = math.random()
 
     return rate, dur, freq, amp, pan
+end
+
+function granmodule.update(...)
+    -- receives updates from pFields as args
 end
 
 function randrange(m, n)

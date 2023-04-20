@@ -9,7 +9,7 @@ function granmodule.init()
     -- setup initial values for the state at the start
 end
 
-function granmodule.generate(...) -- receives external state control as args
+function granmodule.generate()
     
     -- create parameters for a grain and modify state if needed
     rate = .01
@@ -20,4 +20,9 @@ function granmodule.generate(...) -- receives external state control as args
 
     return rate, dur, freq, amp, pan
 end
+
+function granmodule.update(...)
+    -- receives updates from pFields as args
+end
+
 return granmodule
